@@ -45,7 +45,7 @@ D = NaN([data.numframes size(data.frame,1) size(data.frame,2)]);
 D(1,:,:) = data.frame;
 T(1,1) = data.datenum;
 T(1,2) = 1;
-
+A(1) = rmfield(data, {'frame' 'datenum'}); % A for auxiliary data, minus the stuff that goes elsewhere
 
 % In aris we couldn't read the timestamp as data.datenum is alwways 0.
 % The solution adopted has been to create a new timestamp considering the
@@ -73,15 +73,27 @@ if type=='D' || type=='T'
                 T(i,1) = data.datenum;
             end
         end
+        A(i) = rmfield(data, {'frame' 'datenum'});
         T(i,2)=i;
     end
-    
     fclose(data.fid); %Close the ddf file
     data.frame=[];
     data.frame = D;
+
+    % Make A a structure of arrays instead of an array of structures
+    f = fieldnames(A);
+    for i = 1:length(f)
+        if ischar(A(1).(f{i}))
+            AA.(f{i}) = {A.(f{i})}; 
+        else
+            AA.(f{i}) = [A.(f{i})];
+        end
+    end
+    A = AA;
+    clear AA
     
     if type=='D'
-        save(matfilename,'D','T');
+        save(matfilename,'D','T','A');
     end
     
 elseif type=='A'

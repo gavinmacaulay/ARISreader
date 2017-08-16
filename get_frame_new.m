@@ -54,4 +54,13 @@ else
     data.datenum =datenum(header.year,header.month,header.day,header.hour,...
         header.minute,header.second+header.hsecond/100);
 end
+
+data.framerate      = header.framerate;
+data.depth          = header.depth;
+data.compassheading = header.compassheading;
+data.compasspitch   = header.compasspitch;
+data.compassroll    = header.compassroll;
+data.watertemp      = header.watertemp;
+data.salinity       = header.salinity;
+data.pressure       = header.pressure;
 end
