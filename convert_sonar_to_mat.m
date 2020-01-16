@@ -41,7 +41,7 @@ matfilename = [filename(1:end-length(file_extension)),'mat'];
 % Create data set and store to matlab
 data = get_frame_first(filename);
 T = NaN([data.numframes 2]);
-D = NaN([data.numframes size(data.frame,1) size(data.frame,2)]);
+D = zeros([data.numframes size(data.frame,1) size(data.frame,2)], 'uint8');
 D(1,:,:) = data.frame;
 T(1,1) = data.datenum;
 T(1,2) = 1;
@@ -77,7 +77,6 @@ if type=='D' || type=='T'
         T(i,2)=i;
     end
     fclose(data.fid); %Close the ddf file
-    data.frame=[];
     data.frame = D;
 
     % Make A a structure of arrays instead of an array of structures
@@ -93,7 +92,28 @@ if type=='D' || type=='T'
     clear AA
     
     if type=='D'
-        save(matfilename,'D','T','A');
+        % large aris files can lead to data variables here that are too
+        % large for Matlab to store without using the -v7.3 switch. This
+        % introduces some compability when loading into R, so split large
+        % datasets into 2 (which pushes the problem out a but, but doesn't
+        % fully solve it).
+        if numel(D) > 2e9
+            % split into 2
+            s = floor(length(T)/2);
+            T1 = T(1:s);
+            T2 = T(s+1:end);
+            
+            [A1, A2] = splitA(A, s);
+            
+            D2 = D(s+1:end,:,:);
+            D = D(1:s,:,:);
+            
+            [fp, n, ext] = fileparts(matfilename);
+            save(fullfile(fp, [n '-part1' ext]), 'D', 'T1', 'A1');
+            save(fullfile(fp, [n '-part2' ext]), 'D2', 'T2', 'A2');
+        else
+            save(matfilename,'D','T','A');
+        end
     end
     
 elseif type=='A'
@@ -127,3 +147,12 @@ elseif type=='A'
     fclose(data.fid); %Close the ddf file
     close(trackflowavi);
 end
+
+function [A1, A2] = splitA(A, s)
+fn = fieldnames(A);
+
+for j = 1:length(fn)
+    A1.(fn{j}) = A.(fn{j})(1:s);
+    A2.(fn{j}) = A.(fn{j})(s+1:end);
+end
+
